@@ -13,8 +13,8 @@ jobs:
     outputs:
       commit_sha: ${{ steps.commit-sha.outputs.commit_sha }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v31
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: cachix/install-nix-action@96951a368ba55167b55f1c916f7d416bac6505fe
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - run: nix flake update
@@ -66,10 +66,15 @@ jobs:
     name: ${{ matrix.system }}:${{ matrix.name }}
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
         with:
           ref: ${{ needs.update-lock.outputs.commit_sha }}
-      - uses: cachix/install-nix-action@v31
+      - uses: cachix/install-nix-action@96951a368ba55167b55f1c916f7d416bac6505fe
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: cachix/cachix-action@97e5ff84d02b3b4f9936339f767e17f03c9252ed
+        with:
+          name: iosevka-wliao
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - run: nix flake check --print-build-logs --system ${{ matrix.system }}
       - run: nix build --print-build-logs ${{ matrix.attrs }}
