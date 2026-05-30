@@ -1,0 +1,49 @@
+name: Build
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.system }}:${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            system: x86_64-linux
+            name: default
+            attrs: .#packages.x86_64-linux.default
+          - runner: ubuntu-24.04
+            system: x86_64-linux
+            name: full
+            attrs: .#packages.x86_64-linux.full
+          - runner: ubuntu-24.04
+            system: x86_64-linux
+            name: messaging
+            attrs: .#packages.x86_64-linux.messaging
+          - runner: ubuntu-24.04
+            system: x86_64-linux
+            name: tui
+            attrs: .#packages.x86_64-linux.tui
+          - runner: ubuntu-24.04
+            system: x86_64-linux
+            name: web
+            attrs: .#packages.x86_64-linux.web
+          - runner: macos-15
+            system: aarch64-darwin
+            name: default
+            attrs: .#packages.aarch64-darwin.default
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - run: nix build --print-build-logs ${{ matrix.attrs }}

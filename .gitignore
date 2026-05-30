@@ -1,0 +1,6 @@
+# Nix build results
+result
+result-*
+
+# Nix dev shell stamp files (if any)
+.nix-stamps/
