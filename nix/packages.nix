@@ -47,8 +47,46 @@
         doCheck = false;
       };
 
+      # Shim that monkey-patches agent.i18n._locales_dir to check
+      # HERMES_LOCALES_DIR env var, so the nix store package can find
+      # locale YAML files bundled at a known store path.
+      hermesLocalesShim = pkgs.stdenv.mkDerivation {
+        name = "hermes-locales-shim";
+        dontUnpack = true;
+        installPhase = ''
+                    mkdir -p $out/${pkgs.python3.sitePackages}/hermes_locales_fix
+                    cat > $out/${pkgs.python3.sitePackages}/hermes_locales_fix.pth << 'PTH'
+          import hermes_locales_fix
+          PTH
+                    cat > $out/${pkgs.python3.sitePackages}/hermes_locales_fix/__init__.py << 'PY'
+          """Monkey-patch agent.i18n._locales_dir to check HERMES_LOCALES_DIR."""
+          import importlib, os
+          from pathlib import Path
+
+          try:
+              _mod = importlib.import_module("agent.i18n")
+              _orig = _mod._locales_dir
+
+              def _patched_locales_dir():
+                  env = os.environ.get("HERMES_LOCALES_DIR")
+                  if env:
+                      p = Path(env)
+                      if p.is_dir():
+                          return p
+                  return _orig()
+
+              _mod._locales_dir = _patched_locales_dir
+          except ImportError:
+              pass
+          PY
+        '';
+      };
+
+      hermesLocalesDir = "${hermesSource}/locales";
+
       hermesSupplementalPythonPath = builtins.concatStringsSep ":" [
         "${hermesDashboardAuth}/${pkgs.python3.sitePackages}"
+        "${hermesLocalesShim}/${pkgs.python3.sitePackages}"
         (pkgs.python3Packages.makePythonPath [
           hermesLarkOapi
           pkgs.python3Packages.python-telegram-bot
@@ -65,7 +103,8 @@
           postBuild = ''
             rm "$out/bin/hermes"
             makeWrapper ${directHermesPackage}/bin/hermes "$out/bin/hermes" \
-              --prefix PYTHONPATH : ${lib.escapeShellArg hermesSupplementalPythonPath}
+              --prefix PYTHONPATH : ${lib.escapeShellArg hermesSupplementalPythonPath} \
+              --set HERMES_LOCALES_DIR ${hermesLocalesDir}
           '';
           meta = directHermesPackage.meta or { };
         };
@@ -83,7 +122,8 @@
         inherit (inputs'.hermes-agent.checks)
           cross-eval
           ;
-      } // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+      }
+      // pkgs.lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         inherit (inputs'.hermes-agent.checks)
           package-contents
           entry-points-sync

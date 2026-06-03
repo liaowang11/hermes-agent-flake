@@ -1,7 +1,7 @@
 # nix/hermes-agent-fix.nix — Overridable fixed hermes-agent derivation
 #
 # callPackage auto-wires upstreamPkg and sourcePath. Use via overlay or:
-#   pkgs.callPackage ./hermes-agent-fix.nix { 
+#   pkgs.callPackage ./hermes-agent-fix.nix {
 #     upstreamPkg = inputs.hermes-agent.packages.x86_64-linux.default;
 #     sourcePath = inputs.hermes-agent.outPath;
 #   }
@@ -56,8 +56,46 @@ let
     doCheck = false;
   };
 
+  # Shim that monkey-patches agent.i18n._locales_dir to check
+  # HERMES_LOCALES_DIR env var, so the nix store package can find
+  # locale YAML files bundled at a known store path.
+  hermesLocalesShim = stdenv.mkDerivation {
+    name = "hermes-locales-shim";
+    dontUnpack = true;
+    installPhase = ''
+            mkdir -p $out/${python3.sitePackages}/hermes_locales_fix
+            cat > $out/${python3.sitePackages}/hermes_locales_fix.pth << 'PTH'
+      import hermes_locales_fix
+      PTH
+            cat > $out/${python3.sitePackages}/hermes_locales_fix/__init__.py << 'PY'
+      """Monkey-patch agent.i18n._locales_dir to check HERMES_LOCALES_DIR."""
+      import importlib, os
+      from pathlib import Path
+
+      try:
+          _mod = importlib.import_module("agent.i18n")
+          _orig = _mod._locales_dir
+
+          def _patched_locales_dir():
+              env = os.environ.get("HERMES_LOCALES_DIR")
+              if env:
+                  p = Path(env)
+                  if p.is_dir():
+                      return p
+              return _orig()
+
+          _mod._locales_dir = _patched_locales_dir
+      except ImportError:
+          pass
+      PY
+    '';
+  };
+
+  hermesLocalesDir = "${sourcePath}/locales";
+
   hermesSupplementalPythonPath = builtins.concatStringsSep ":" [
     "${hermesDashboardAuth}/${python3.sitePackages}"
+    "${hermesLocalesShim}/${python3.sitePackages}"
     (python3Packages.makePythonPath [
       hermesLarkOapi
       python3Packages.python-telegram-bot
@@ -74,7 +112,8 @@ stdenv.mkDerivation {
   installPhase = ''
     mkdir -p "$out/bin"
     makeWrapper ${upstreamPkg}/bin/hermes "$out/bin/hermes" \
-      --prefix PYTHONPATH : ${lib.escapeShellArg hermesSupplementalPythonPath}
+      --prefix PYTHONPATH : ${lib.escapeShellArg hermesSupplementalPythonPath} \
+      --set HERMES_LOCALES_DIR ${hermesLocalesDir}
   '';
 
   meta = upstreamPkg.meta or { };
