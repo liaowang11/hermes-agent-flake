@@ -56,24 +56,26 @@ let
     doCheck = false;
   };
 
-  # Shim that monkey-patches agent.i18n._locales_dir to check
-  # HERMES_LOCALES_DIR env var, so the nix store package can find
-  # locale YAML files bundled at a known store path.
+  # Shim that monkey-patches agent.i18n._locales_dir to check the
+  # HERMES_LOCALES_DIR env var, so the nix store package can find locale YAML
+  # files bundled at a known store path.
+  #
+  # Delivered as sitecustomize.py rather than a .pth import line: the shim is
+  # added via PYTHONPATH, and .pth files are only executed for genuine site
+  # directories, not arbitrary PYTHONPATH entries.  sitecustomize is imported
+  # by name from sys.path, so it runs at interpreter startup either way.
   hermesLocalesShim = stdenv.mkDerivation {
     name = "hermes-locales-shim";
     dontUnpack = true;
     installPhase = ''
-            mkdir -p $out/${python3.sitePackages}/hermes_locales_fix
-            cat > $out/${python3.sitePackages}/hermes_locales_fix.pth << 'PTH'
-      import hermes_locales_fix
-      PTH
-            cat > $out/${python3.sitePackages}/hermes_locales_fix/__init__.py << 'PY'
-      """Monkey-patch agent.i18n._locales_dir to check HERMES_LOCALES_DIR."""
-      import importlib, os
+            mkdir -p $out/${python3.sitePackages}
+            cat > $out/${python3.sitePackages}/sitecustomize.py << 'PY'
+      """Monkey-patch agent.i18n._locales_dir to honor HERMES_LOCALES_DIR."""
+      import os
       from pathlib import Path
 
       try:
-          _mod = importlib.import_module("agent.i18n")
+          import agent.i18n as _mod
           _orig = _mod._locales_dir
 
           def _patched_locales_dir():
