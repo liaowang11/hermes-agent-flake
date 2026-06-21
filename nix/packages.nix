@@ -117,7 +117,6 @@
           full
           tui
           web
-          fix-lockfiles
           ;
       };
 
