@@ -96,25 +96,29 @@
           pkgs.python3Packages.qrcode
         ])
       ];
+
+      wrappedHermesPackage = pkgs.symlinkJoin {
+        name = directHermesPackage.name;
+        paths = [ directHermesPackage ];
+        nativeBuildInputs = [ pkgs.makeWrapper ];
+        postBuild = ''
+          rm "$out/bin/hermes"
+          makeWrapper ${directHermesPackage}/bin/hermes "$out/bin/hermes" \
+            --prefix PYTHONPATH : ${lib.escapeShellArg hermesSupplementalPythonPath} \
+            --set HERMES_LOCALES_DIR ${hermesLocalesDir}
+        '';
+        meta = directHermesPackage.meta or { };
+      };
     in
     {
       packages = {
-        default = pkgs.symlinkJoin {
-          name = directHermesPackage.name;
-          paths = [ directHermesPackage ];
-          nativeBuildInputs = [ pkgs.makeWrapper ];
-          postBuild = ''
-            rm "$out/bin/hermes"
-            makeWrapper ${directHermesPackage}/bin/hermes "$out/bin/hermes" \
-              --prefix PYTHONPATH : ${lib.escapeShellArg hermesSupplementalPythonPath} \
-              --set HERMES_LOCALES_DIR ${hermesLocalesDir}
-          '';
-          meta = directHermesPackage.meta or { };
-        };
+        default = wrappedHermesPackage;
+        full = wrappedHermesPackage;
 
         inherit (inputs'.hermes-agent.packages)
+          desktop
           messaging
-          full
+          minimal
           tui
           web
           ;
