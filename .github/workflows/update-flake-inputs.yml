@@ -9,30 +9,31 @@ jobs:
   update-lock:
     runs-on: ubuntu-24.04
     permissions:
-      contents: write
+      contents: read
     outputs:
-      commit_sha: ${{ steps.commit-sha.outputs.commit_sha }}
+      changed: ${{ steps.diff.outputs.changed }}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
       - uses: cachix/install-nix-action@96951a368ba55167b55f1c916f7d416bac6505fe
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - run: nix flake update
-      - run: |
+      - id: diff
+        run: |
           if git diff --quiet -- flake.lock; then
-            exit 0
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add flake.lock
-          git commit -m "Update flake inputs"
-          git push origin HEAD:main
-      - id: commit-sha
-        run: echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - if: steps.diff.outputs.changed == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: flake-lock
+          path: flake.lock
 
   build:
     needs: update-lock
+    if: needs.update-lock.outputs.changed == 'true'
     permissions:
       contents: read
     strategy:
@@ -67,8 +68,10 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          ref: ${{ needs.update-lock.outputs.commit_sha }}
+          name: flake-lock
+          path: .
       - uses: cachix/install-nix-action@96951a368ba55167b55f1c916f7d416bac6505fe
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
@@ -78,3 +81,22 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - run: nix flake check --print-build-logs --system ${{ matrix.system }}
       - run: nix build --print-build-logs ${{ matrix.attrs }}
+
+  commit:
+    needs: [update-lock, build]
+    if: needs.update-lock.outputs.changed == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: flake-lock
+          path: .
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add flake.lock
+          git commit -m "Update flake inputs"
+          git push origin HEAD:main
