@@ -111,17 +111,11 @@
       };
     in
     {
-      packages = {
+      # Re-export every upstream package (survives upstream renames/additions)
+      # and override default + full with the fixed wrapper.
+      packages = inputs'.hermes-agent.packages // {
         default = wrappedHermesPackage;
         full = wrappedHermesPackage;
-
-        inherit (inputs'.hermes-agent.packages)
-          desktop
-          messaging
-          minimal
-          tui
-          web
-          ;
       };
 
       checks = {
