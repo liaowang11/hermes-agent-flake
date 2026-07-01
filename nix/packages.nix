@@ -96,29 +96,26 @@
           pkgs.python3Packages.qrcode
         ])
       ];
+
+      wrappedHermesPackage = pkgs.symlinkJoin {
+        name = directHermesPackage.name;
+        paths = [ directHermesPackage ];
+        nativeBuildInputs = [ pkgs.makeWrapper ];
+        postBuild = ''
+          rm "$out/bin/hermes"
+          makeWrapper ${directHermesPackage}/bin/hermes "$out/bin/hermes" \
+            --prefix PYTHONPATH : ${lib.escapeShellArg hermesSupplementalPythonPath} \
+            --set HERMES_LOCALES_DIR ${hermesLocalesDir}
+        '';
+        meta = directHermesPackage.meta or { };
+      };
     in
     {
-      packages = {
-        default = pkgs.symlinkJoin {
-          name = directHermesPackage.name;
-          paths = [ directHermesPackage ];
-          nativeBuildInputs = [ pkgs.makeWrapper ];
-          postBuild = ''
-            rm "$out/bin/hermes"
-            makeWrapper ${directHermesPackage}/bin/hermes "$out/bin/hermes" \
-              --prefix PYTHONPATH : ${lib.escapeShellArg hermesSupplementalPythonPath} \
-              --set HERMES_LOCALES_DIR ${hermesLocalesDir}
-          '';
-          meta = directHermesPackage.meta or { };
-        };
-
-        inherit (inputs'.hermes-agent.packages)
-          messaging
-          full
-          tui
-          web
-          fix-lockfiles
-          ;
+      # Re-export every upstream package (survives upstream renames/additions)
+      # and override default + full with the fixed wrapper.
+      packages = inputs'.hermes-agent.packages // {
+        default = wrappedHermesPackage;
+        full = wrappedHermesPackage;
       };
 
       checks = {
