@@ -113,10 +113,16 @@
     {
       # Re-export every upstream package (survives upstream renames/additions)
       # and override default + full with the fixed wrapper.
-      packages = inputs'.hermes-agent.packages // {
-        default = wrappedHermesPackage;
-        full = wrappedHermesPackage;
-      };
+      # 'sandbox' is excluded on non-Linux: it depends on bubblewrap, which
+      # is Linux-only, so evaluating it breaks `nix flake check` on darwin.
+      packages = builtins.removeAttrs inputs'.hermes-agent.packages [ "sandbox" ]
+        // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
+          inherit (inputs'.hermes-agent.packages) sandbox;
+        }
+        // {
+          default = wrappedHermesPackage;
+          full = wrappedHermesPackage;
+        };
 
       checks = {
         inherit (inputs'.hermes-agent.checks)
