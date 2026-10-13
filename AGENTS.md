@@ -40,17 +40,13 @@ doesn't appear after a push, dispatch manually and check the run list.
 | `nix/overlays.nix` | Exposes `overlays.default` (`pkgs.hermes-agent` = fixed derivation). |
 | `nix/hermes-agent-fix.nix` | Overridable `callPackage` derivation holding the actual fix; keeps it duplicable from other flakes. |
 
-The fix has three parts (duplicated in `packages.nix` for the flake's own
-`default` package and in `hermes-agent-fix.nix` for the overlay — change both
-together):
-
-1. `dashboard_auth` subpackage copied in from upstream source.
-2. Extra Python deps on `PYTHONPATH`: `lark-oapi` (built from wheel),
-   `python-telegram-bot`, `qrcode`.
-3. Locales: `sitecustomize.py` shim on `PYTHONPATH` monkey-patches
-   `agent.i18n._locales_dir` to honor `HERMES_LOCALES_DIR`, pointing at
-   `<upstream source>/locales`. Must stay `sitecustomize.py` — `.pth` files
-   don't execute for bare `PYTHONPATH` entries.
+`hermes-agent-fix.nix` owns the release-base version override used by both
+packages and overlay. Keep that version aligned with the newest release tag
+that is an ancestor of the pinned source: plugin minimum-version checks read
+it from the install stamp. Upstream now owns runtime resources and locked Python
+dependencies. Supplemental `PYTHONPATH` copies previously shadowed the Feishu
+SDK and mixed interpreter versions; keep the runtime dependency graph together.
+Run `checks.x86_64-linux.runtime-compatibility` on asus-pn50 after changes.
 
 ## Updating inputs
 
@@ -68,8 +64,8 @@ git commit -m "chore: update Hermes Agent to vX.Y.Z"
   The lock tracks `main`, which sits slightly ahead of the newest release tag —
   name the commit after the newest tag, not the locked rev.
 - CI does the same weekly (Friday) and commits as "Update flake inputs".
-- Upstream derives the Nix version from git metadata (dynamic versioning), so
-  store names like `hermes-agent-0.0.0` are expected, not a packaging bug.
+- Upstream's Nix version defaults to `0.0.0`; this flake supplies the release
+  base version so plugin version requirements work in managed installs.
 - Prefer `gh api repos/NousResearch/hermes-agent/contents/...` over
   `raw.githubusercontent.com` when inspecting upstream files — the raw host
   rate-limits quickly.

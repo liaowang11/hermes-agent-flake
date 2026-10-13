@@ -1,24 +1,24 @@
 # hermes-agent-flake
 
-A Nix flake that wraps the upstream [`NousResearch/hermes-agent`](https://github.com/NousResearch/hermes-agent)
-package and fixes a handful of runtime gaps so the CLI works out of the box from
-the Nix store.
+A Nix flake that supplies release identity for the upstream
+[`NousResearch/hermes-agent`](https://github.com/NousResearch/hermes-agent) package.
 
 ## What it fixes
 
-The upstream package builds, but the `hermes` CLI is missing pieces it needs at
-runtime. This flake re-wraps the upstream binary to supply them:
+The upstream Nix derivation defaults to version `0.0.0`. This flake overrides it
+with the source's release base version, currently `0.21.7`, so the runtime install
+stamp allows plugins with minimum Hermes version requirements. Update this base
+version when advancing the source past a newer release; retain the upstream
+revision and Nix-managed update mechanism.
 
-- **`dashboard_auth`** — the upstream `hermes_cli.dashboard_auth` subpackage is
-  copied in from source alongside the installed `hermes_cli`.
-- **Extra Python dependencies** — `lark-oapi` (built from the published wheel),
-  `python-telegram-bot`, and `qrcode` are added to `PYTHONPATH`.
-- **Locale discovery** — a `sitecustomize.py` shim monkey-patches
-  `agent.i18n._locales_dir` to honor a `HERMES_LOCALES_DIR` environment variable,
-  which the wrapper points at the locale YAML files bundled at a known store path.
+The upstream full package now supplies dashboard authentication, locale resources,
+and locked messaging dependencies, including Feishu SDK 1.6.8. Earlier versions
+of this flake copied Python packages and added supplemental dependencies to
+`PYTHONPATH`. Those overrides are removed: they shadowed the correct SDK and mixed
+Python 3.13 dependencies into the Python 3.14 runtime.
 
-The wrapper sets `PYTHONPATH` and `HERMES_LOCALES_DIR` via `makeWrapper`, leaving
-the upstream entry point otherwise untouched.
+The `runtime-compatibility` check constructs a Feishu WebSocket client with the
+channel user-agent tag and checks the installed CLI's release version.
 
 ## Usage
 
@@ -61,7 +61,6 @@ an overridable `callPackage` derivation, so you can also wire it up manually:
 ```nix
 pkgs.callPackage ./nix/hermes-agent-fix.nix {
   upstreamPkg = inputs.hermes-agent.packages.x86_64-linux.default;
-  sourcePath = inputs.hermes-agent.outPath;
 }
 ```
 
