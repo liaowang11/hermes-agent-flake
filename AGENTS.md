@@ -44,9 +44,15 @@ doesn't appear after a push, dispatch manually and check the run list.
 packages and overlay. Keep that version aligned with the newest release tag
 that is an ancestor of the pinned source: plugin minimum-version checks read
 it from the install stamp. Upstream now owns runtime resources and locked Python
-dependencies. Supplemental `PYTHONPATH` copies previously shadowed the Feishu
+dependencies. Supplemental third-party packages previously shadowed the Feishu
 SDK and mixed interpreter versions; keep the runtime dependency graph together.
-Run `checks.x86_64-linux.runtime-compatibility` on asus-pn50 after changes.
+The matching pinned source tree supplies PM's required `pyproject.toml` and
+`uv.lock` at the front of PYTHONPATH; the upstream supplemental-package suffix
+loses to its installed code path. The workspace-copy patch makes snapshots of
+read-only Nix sources writable. NixOS also needs nix-ld for PM's native uv/Python
+downloads.
+Run `checks.x86_64-linux.runtime-compatibility` on asus-pn50 after changes and
+exercise plugin activation against the installed runtime.
 
 ## Updating inputs
 

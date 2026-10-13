@@ -17,6 +17,16 @@ of this flake copied Python packages and added supplemental dependencies to
 `PYTHONPATH`. Those overrides are removed: they shadowed the correct SDK and mixed
 Python 3.13 dependencies into the Python 3.14 runtime.
 
+Plugin dependency transactions also need the source's `pyproject.toml` and
+`uv.lock` beside the executing code. The package exposes the exact pinned source
+tree at the front of `PYTHONPATH`, ahead of the installed code. It adds no
+replacement third-party packages. A small source patch makes core workspace
+snapshots writable: preserving Nix store file modes otherwise prevents PM from
+writing the generated plugin project.
+On NixOS, enable `programs.nix-ld.enable` so PM's pinned uv and Python downloads
+can run. Provision required tools with `hermes pm install ffmpeg node npm ripgrep`
+and check `hermes pm doctor`.
+
 The `runtime-compatibility` check constructs a Feishu WebSocket client with the
 channel user-agent tag and checks the installed CLI's release version.
 
@@ -61,6 +71,7 @@ an overridable `callPackage` derivation, so you can also wire it up manually:
 ```nix
 pkgs.callPackage ./nix/hermes-agent-fix.nix {
   upstreamPkg = inputs.hermes-agent.packages.x86_64-linux.default;
+  sourcePath = inputs.hermes-agent.outPath;
 }
 ```
 
