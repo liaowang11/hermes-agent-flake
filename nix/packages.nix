@@ -26,13 +26,14 @@
           export HOME="$TMPDIR/home"
           mkdir -p "$HOME"
           PYTHONPATH=${hermesPackage.runtimeSource} ${hermesPackage.hermesVenv}/bin/python3 - <<'PY'
+          import sys
           import tempfile
           from pathlib import Path
           from pm.paths import repo_root
           from pm.workspace import _generate_pyproject
           with tempfile.TemporaryDirectory() as temporary:
               workspace = Path(temporary) / "workspace"
-              _generate_pyproject([], workspace, source=repo_root())
+              _generate_pyproject([], workspace, source=repo_root(), python=Path(sys.executable))
               with (workspace / "pyproject.toml").open("a") as output:
                   output.write("\n# plugin transaction\n")
               with (workspace / "pm" / "transaction-smoke").open("w") as output:
