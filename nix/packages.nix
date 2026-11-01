@@ -46,7 +46,7 @@
           assert "channel" in client._user_agent, client._user_agent
           PY
           ${hermesPackage}/bin/hermes --version > version.txt
-          grep -F '0.21.7' version.txt
+          grep -F '0.22.5' version.txt
           touch "$out"
         '';
       }
