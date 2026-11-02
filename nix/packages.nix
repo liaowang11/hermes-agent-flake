@@ -52,6 +52,10 @@
           echo '{"schema":1,"packages":{}}' > "$HOME/.hermes/tools/facts.json"
           HERMES_HOME="$HOME/.hermes" ${hermesPackage}/bin/hermes sessions --help > sessions.txt 2>&1
           if grep -F 'install out of sync' sessions.txt; then exit 1; fi
+          # Without a stamp beside the runtime source, PM treats the install as
+          # unmanaged and swaps in its own venv, which lacks the packaged extras.
+          test -f ${hermesPackage.runtimeSource}/install-stamp.json
+          HERMES_HOME="$HOME/.hermes" ${hermesPackage}/bin/hermes acp --check
           touch "$out"
         '';
       }

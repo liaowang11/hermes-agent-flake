@@ -23,6 +23,10 @@ let
     substituteInPlace "$out/hermes_cli/venv_sync.py" \
       --replace-fail $'    problems = pm.activate()\n    if not problems:' \
         $'    problems = pm.activate()\n    if not problems or read_install_stamp(project_root).get("updateMechanism") == "external":'
+    # This tree is the executing project root, so PM reads its stamp from here.
+    # Without one it treats the install as unmanaged and replaces the Nix venv
+    # on sys.path with its own, dropping packaged extras such as acp.
+    cp ${versionedPackage}/share/hermes-agent/install-stamp.json "$out/install-stamp.json"
   '';
   versionedPackage = upstreamPkg.override {
     # Plugin requirements read this release base from the managed install stamp.
