@@ -24,8 +24,11 @@ replacement third-party packages. A small source patch makes core workspace
 snapshots writable: preserving Nix store file modes otherwise prevents PM from
 writing the generated plugin project.
 On NixOS, enable `programs.nix-ld.enable` so PM's pinned uv and Python downloads
-can run. Provision required tools with `hermes pm install ffmpeg node npm ripgrep`
-and check `hermes pm doctor`.
+can run. The wrapper already puts the pinned node, npm, ripgrep, ffmpeg and git
+on `PATH`; do not install them again with `hermes pm`. A user PM store under
+`$HERMES_HOME/tools` drifts on every source bump, so this package drops the
+"install out of sync" startup warning, which no Nix rebuild could fix. Use
+`hermes pm doctor` to inspect that store.
 
 The `runtime-compatibility` check constructs a Feishu WebSocket client with the
 channel user-agent tag and checks the installed CLI's release version.

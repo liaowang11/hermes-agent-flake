@@ -17,6 +17,12 @@ let
       --replace-fail 'shutil.copy2(entry, target)' 'copy_writable(entry, target)' \
       --replace-fail 'shutil.copytree(entry, target, ignore=ignore)' \
         $'shutil.copytree(entry, target, ignore=ignore, copy_function=copy_writable)\n            for directory, _, _ in os.walk(target):\n                Path(directory).chmod(Path(directory).stat().st_mode | 0o700)'
+    # The wrapper supplies the pinned tools. A user PM store under
+    # $HERMES_HOME/tools drifts on every source bump, and a Nix rebuild cannot
+    # fix it, so an external install keeps PATH activation but drops the warning.
+    substituteInPlace "$out/hermes_cli/venv_sync.py" \
+      --replace-fail $'    problems = pm.activate()\n    if not problems:' \
+        $'    problems = pm.activate()\n    if not problems or read_install_stamp(project_root).get("updateMechanism") == "external":'
   '';
   versionedPackage = upstreamPkg.override {
     # Plugin requirements read this release base from the managed install stamp.

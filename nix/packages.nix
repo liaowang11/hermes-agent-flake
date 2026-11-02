@@ -47,6 +47,11 @@
           PY
           ${hermesPackage}/bin/hermes --version > version.txt
           grep -F '0.22.5' version.txt
+          # A stale user PM store must not make every command warn.
+          mkdir -p "$HOME/.hermes/tools"
+          echo '{"schema":1,"packages":{}}' > "$HOME/.hermes/tools/facts.json"
+          HERMES_HOME="$HOME/.hermes" ${hermesPackage}/bin/hermes sessions --help > sessions.txt 2>&1
+          if grep -F 'install out of sync' sessions.txt; then exit 1; fi
           touch "$out"
         '';
       }
