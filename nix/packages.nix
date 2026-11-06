@@ -46,7 +46,7 @@
           assert "channel" in client._user_agent, client._user_agent
           PY
           ${hermesPackage}/bin/hermes --version > version.txt
-          grep -F '0.22.5' version.txt
+          grep -F '0.23.0' version.txt
           # A stale user PM store must not make every command warn.
           mkdir -p "$HOME/.hermes/tools"
           echo '{"schema":1,"packages":{}}' > "$HOME/.hermes/tools/facts.json"

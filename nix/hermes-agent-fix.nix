@@ -30,7 +30,7 @@ let
   '';
   versionedPackage = upstreamPkg.override {
     # Plugin requirements read this release base from the managed install stamp.
-    version = "0.22.5";
+    version = "0.23.0";
   };
 in
 symlinkJoin {
