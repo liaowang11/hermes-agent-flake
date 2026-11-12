@@ -6,7 +6,7 @@ A Nix flake that supplies release identity for the upstream
 ## What it fixes
 
 The upstream Nix derivation defaults to version `0.0.0`. This flake overrides it
-with the source's release base version, currently `0.21.7`, so the runtime install
+with the source's release base version, currently `0.23.1`, so the runtime install
 stamp allows plugins with minimum Hermes version requirements. Update this base
 version when advancing the source past a newer release; retain the upstream
 revision and Nix-managed update mechanism.
