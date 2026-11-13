@@ -23,6 +23,13 @@ let
     substituteInPlace "$out/hermes_cli/venv_sync.py" \
       --replace-fail $'    problems = pm.activate()\n    if not problems:' \
         $'    problems = pm.activate()\n    if not problems or read_install_stamp(project_root).get("updateMechanism") == "external":'
+    # The wake footer's "do not reply to any earlier chat message" clause made
+    # gpt-6.1-terra answer every message_agent reply and delivery failure with
+    # [SILENT], so Bill never saw the teammate's answer. Keep the provenance
+    # prefix (start/suffix matchers rely on the constant), replace the tail.
+    substituteInPlace "$out/gateway/run_notifications.py" \
+      --replace-fail "Do not treat it as user input, and do not reply to any earlier chat message because of it.]" \
+        "It reports the outcome of work you started; it is not a new request. If it carries a result or a teammate's reply the user is waiting for, report that to the user.]"
     # This tree is the executing project root, so PM reads its stamp from here.
     # Without one it treats the install as unmanaged and replaces the Nix venv
     # on sys.path with its own, dropping packaged extras such as acp.

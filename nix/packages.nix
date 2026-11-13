@@ -44,6 +44,10 @@
           from lark_oapi.ws import Client
           client = Client("test-app", "test-secret", extra_ua_tags=["channel"])
           assert "channel" in client._user_agent, client._user_agent
+          from gateway.run_notifications import _mark_internal_notification
+          wake = _mark_internal_notification('[IMPORTANT: Background process p completed normally (exit code 0).]')
+          assert wake.endswith("report that to the user.]"), wake
+          assert "do not reply to any earlier chat message" not in wake, wake
           PY
           ${hermesPackage}/bin/hermes --version > version.txt
           grep -F '0.23.1' version.txt
