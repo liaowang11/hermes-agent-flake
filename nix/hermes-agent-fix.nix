@@ -30,6 +30,13 @@ let
     substituteInPlace "$out/gateway/run_notifications.py" \
       --replace-fail "Do not treat it as user input, and do not reply to any earlier chat message because of it.]" \
         "It reports the outcome of work you started; it is not a new request. If it carries a result or a teammate's reply the user is waiting for, report that to the user.]"
+    # A hosted room publishes only the reply of the member turn it dispatched.
+    # A background delegation's wake runs in the member's hidden room session,
+    # so its answer never reaches the room. Room turns declare no async
+    # delivery, so delegate_task and notify_on_complete run inside the turn.
+    substituteInPlace "$out/gateway/run.py" \
+      --replace-fail $'        _async_delivery = getattr(_adapter, "supports_async_delivery", True)\n' \
+        $'        _async_delivery = getattr(_adapter, "supports_async_delivery", True)\n        if _async_delivery and source.platform == Platform.LOCAL:\n            _local = self._adapter_for_source(source)\n            _policy = (getattr(_local, "policies", None) or {}).get(source.chat_id)\n            if getattr(_policy, "source", None) == "bot_room":\n                _async_delivery = False\n'
     # This tree is the executing project root, so PM reads its stamp from here.
     # Without one it treats the install as unmanaged and replaces the Nix venv
     # on sys.path with its own, dropping packaged extras such as acp.

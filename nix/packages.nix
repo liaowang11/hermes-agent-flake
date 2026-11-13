@@ -48,6 +48,25 @@
           wake = _mark_internal_notification('[IMPORTANT: Background process p completed normally (exit code 0).]')
           assert wake.endswith("report that to the user.]"), wake
           assert "do not reply to any earlier chat message" not in wake, wake
+          from types import SimpleNamespace
+          from gateway.config import Platform
+          from gateway.run import GatewayRunner
+          from gateway.session import SessionSource
+          from gateway.session_context import async_delivery_supported
+          def delivery_for(policy_source):
+              adapter = SimpleNamespace(supports_async_delivery=True,
+                                        policies={"local-room": SimpleNamespace(source=policy_source)})
+              runner = SimpleNamespace(adapters={Platform.LOCAL: adapter}, _adapter_for_source=lambda s: adapter)
+              context = SimpleNamespace(source=SessionSource(platform=Platform.LOCAL, chat_id="local-room"),
+                                        actor_user_id=None, actor_user_name=None, turn_event=None,
+                                        session_key="agent:p:local:dm:local-room", session_id="local-room")
+              tokens = GatewayRunner._set_session_env(runner, context)
+              try:
+                  return async_delivery_supported()
+              finally:
+                  GatewayRunner._clear_session_env(runner, tokens)
+          assert delivery_for("desktop") is True, "Desktop chats keep background delivery"
+          assert delivery_for("bot_room") is False, "room member turns cannot receive a later wake"
           PY
           ${hermesPackage}/bin/hermes --version > version.txt
           grep -F '0.23.1' version.txt
