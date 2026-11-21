@@ -3,13 +3,14 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-latest.url = "https://flakehub.com/f/DeterminateSystems/nixpkgs-weekly/*";
     flake-parts.url = "github:hercules-ci/flake-parts";
     flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
     hermes-agent.url = "github:NousResearch/hermes-agent";
   };
 
   outputs =
-    inputs @ { flake-parts, ... }:
+    inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "x86_64-linux"
@@ -17,6 +18,9 @@
         "aarch64-darwin"
       ];
 
-      imports = [ ./nix/packages.nix ./nix/overlays.nix ];
+      imports = [
+        ./nix/packages.nix
+        ./nix/overlays.nix
+      ];
     };
 }

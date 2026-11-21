@@ -41,6 +41,10 @@ jobs:
             system: x86_64-linux
             name: web
             attrs: .#packages.x86_64-linux.web
+          - runner: ubuntu-24.04
+            system: x86_64-linux
+            name: pyrefly
+            attrs: .#packages.x86_64-linux.pyrefly
           - runner: macos-15
             system: aarch64-darwin
             name: default
