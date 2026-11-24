@@ -18,14 +18,6 @@
         // {
           default = hermesPackage;
           full = hermesPackage;
-          pyrefly =
-            let
-              lp = inputs.nixpkgs-latest.legacyPackages.${pkgs.stdenv.hostPlatform.system};
-            in
-            lp.pyrefly.overrideAttrs (old: {
-              nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ lp.pkg-config ];
-              buildInputs = (old.buildInputs or [ ]) ++ [ lp.zstd ];
-            });
         };
 
       checks = {
